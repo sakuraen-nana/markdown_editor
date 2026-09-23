@@ -29,6 +29,16 @@ Flutter 实现的 Markdown 编辑器。项目刚完成框架初始化（Flutter 
   12 种类型与 emoji 对照、body/footer 规则以该 skill 为准，本文件不重复维护。
 - **提交信息不得包含任何协作者署名** —— 不加 `Co-Authored-By:` 行，不署工具名或 AI 名。只描述变更本身。
 
+## 依赖约束
+
+- **gpt_markdown**：禁止使用其 1.3.0 中被标记为 `@Deprecated` 的任何特性与 API。
+  deprecated 面基本等于整个 legacy 正则解析管线（`MarkdownComponent` / `InlineMd` /
+  `MdWidget` 等）与旧版参数（`components` / `inlineComponents` / `incremental` /
+  `sourceTagBuilder` / `highlightBuilder` / `linkBuilder`），计划在 2.0 移除；
+  只允许使用现行 API（plusparse 解析、`blockComponents` / `inlinePatterns` /
+  `inlineDirectives`、styleSheet 与现行 builders）。升级依赖版本后新增的
+  deprecated 项同理禁用。
+
 ## 项目结构
 
 ```
