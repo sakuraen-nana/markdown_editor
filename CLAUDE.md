@@ -52,6 +52,7 @@ openspec/      规格与提案（changes/ 在途提案，specs/ 已归档主规�
 - **所有 `flutter` / `dart` 命令在 `flutter_app/` 目录下执行**（应用不在仓库根）。
 - Flutter 相关任务**优先匹配已安装的 flutter-* 官方 skills**（Flutter 团队维护，见 `.claude/skills/flutter-*`），
   覆盖：widget/集成测试、响应式布局、布局错误修复、go_router 路由、国际化、JSON 序列化、http 请求等。
+- **网络受限环境**：当前机器即使运行代理程序并配置代理参数，也无法访问 Google 等境外网站，GitHub 访问亦不稳定；不得把代理配置视为外网可达。此后的开发、构建与调试应优先检查并复用本地 SDK、依赖和构建缓存，避免无必要的公网下载；遇到网络依赖时优先尝试缓存/离线方案，区分网络故障与代码故障，并如实说明因缺少本地资源而无法继续的阻塞，不要反复依赖不稳定的外网访问。
 - **无显示环境（CI/容器）运行桌面应用**：必须带 D-Bus 会话，否则应用卡在 GTK 初始化、
   Dart 代码完全不执行且无任何输出：
   `xvfb-run -a dbus-run-session -- ./build/linux/x64/debug/bundle/markdown_editor`（可加 `NO_AT_BRIDGE=1`）。
