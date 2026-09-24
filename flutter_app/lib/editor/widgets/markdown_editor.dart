@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../controllers/markdown_block_controller.dart';
+import '../document_codec.dart';
 import '../editor_style.dart';
 import '../models/block.dart';
 import 'rendered_block.dart';
@@ -14,12 +15,13 @@ import 'rendered_block.dart';
 class MarkdownEditor extends StatefulWidget {
   const MarkdownEditor({
     super.key,
-    this.initialBlockTexts = const [''],
+    this.initialBlocks = const <MdBlock>[],
     this.onChanged,
   });
 
-  /// 初始块文本，每个元素对应一个块。
-  final List<String> initialBlockTexts;
+  /// 初始块列表；[MdBlock.recordedSeparatorAfter] 供保存回写还原原始间隔，
+  /// id 由编辑器重新分配（调用方无需提供）。
+  final List<MdBlock> initialBlocks;
 
   /// 文档发生任何变更时的回调。
   final ValueChanged<List<MdBlock>>? onChanged;
@@ -37,8 +39,17 @@ class _MarkdownEditorState extends State<MarkdownEditor> {
   @override
   void initState() {
     super.initState();
-    for (final text in widget.initialBlockTexts) {
-      _createBlock(_blocks.length, text, focus: false);
+    if (widget.initialBlocks.isEmpty) {
+      _createBlock(0, '', focus: false);
+    } else {
+      for (final block in widget.initialBlocks) {
+        _createBlock(
+          _blocks.length,
+          block.text,
+          recordedSeparator: block.recordedSeparatorAfter,
+          focus: false,
+        );
+      }
     }
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_blocks.isNotEmpty) _focusNodes[_blocks.first.id]?.requestFocus();
@@ -65,11 +76,23 @@ class _MarkdownEditorState extends State<MarkdownEditor> {
     String text, {
     required bool focus,
     int cursor = 0,
+    String? recordedSeparator,
   }) {
     final id = 'block-${_nextId++}';
-    _blocks.insert(index, MdBlock(id: id, text: text));
+    _blocks.insert(
+      index,
+      MdBlock(id: id, text: text, recordedSeparatorAfter: recordedSeparator),
+    );
     final controller = MarkdownBlockController(text: text)
       ..selection = TextSelection.collapsed(offset: cursor);
+    // 编辑态文本与块模型同步：否则失焦渲染与保存都会拿到旧文本。
+    controller.addListener(() {
+      final i = _blocks.indexWhere((block) => block.id == id);
+      if (i >= 0 && _blocks[i].text != controller.text) {
+        _blocks[i] = _blocks[i].copyWith(text: controller.text);
+        _notifyChanged();
+      }
+    });
     _controllers[id] = controller;
     _focusNodes[id] = FocusNode(onKeyEvent: (_, event) => _handleKey(id, event))
       ..addListener(_rebuild);
@@ -90,7 +113,14 @@ class _MarkdownEditorState extends State<MarkdownEditor> {
     }
     if (event.logicalKey == LogicalKeyboardKey.enter ||
         event.logicalKey == LogicalKeyboardKey.numpadEnter) {
-      _splitBlock(blockId);
+      final text = controller.text;
+      // 多行结构块内 Enter 插入换行不拆块，保住表格/围栏/引用/列表结构
+      // （spec：块编辑操作·结构块内 Enter 插入换行）。
+      if (text.contains('\n') || DocumentCodec.startsWithStructure(text)) {
+        _insertNewline(blockId, controller);
+      } else {
+        _splitBlock(blockId);
+      }
       return KeyEventResult.handled;
     }
     if (event.logicalKey == LogicalKeyboardKey.backspace) {
@@ -115,21 +145,43 @@ class _MarkdownEditorState extends State<MarkdownEditor> {
     );
     final head = controller.text.substring(0, offset);
     final tail = controller.text.substring(offset);
+    final original = _blocks[index];
     var newId = '';
     setState(() {
+      // 拆分产生的新边界无原始间隔记录；原块与后续块的间隔归到尾块。
       _blocks[index] = MdBlock(id: blockId, text: head);
       controller.value = controller.value.copyWith(
         text: head,
         selection: const TextSelection.collapsed(offset: 0),
         composing: TextRange.empty,
       );
-      newId = _createBlock(index + 1, tail, focus: false);
+      newId = _createBlock(
+        index + 1,
+        tail,
+        recordedSeparator: original.recordedSeparatorAfter,
+        focus: false,
+      );
     });
     // 新块的节点要等本帧 build 挂载后才能接收焦点。
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _focusNodes[newId]?.requestFocus();
     });
     _notifyChanged();
+  }
+
+  /// 结构块内 Enter：选区替换为换行符，光标落到新行行首。
+  void _insertNewline(String blockId, MarkdownBlockController controller) {
+    final value = controller.value;
+    final len = value.text.length;
+    final base = value.selection.baseOffset.clamp(0, len);
+    final extent = value.selection.extentOffset.clamp(0, len);
+    final start = base <= extent ? base : extent;
+    final end = base <= extent ? extent : base;
+    controller.value = value.copyWith(
+      text: value.text.replaceRange(start, end, '\n'),
+      selection: TextSelection.collapsed(offset: start + 1),
+      composing: TextRange.empty,
+    );
   }
 
   /// 行首 Backspace：并入上一块，光标落在合并点（spec：块编辑操作）。
@@ -142,7 +194,12 @@ class _MarkdownEditorState extends State<MarkdownEditor> {
     final merged = previous.text + current.text;
     final joinOffset = controller.text.length;
     setState(() {
-      _blocks[index - 1] = MdBlock(id: previous.id, text: merged);
+      // 合并块接管被并块的对外间隔；两块间的间隔随合并消失。
+      _blocks[index - 1] = MdBlock(
+        id: previous.id,
+        text: merged,
+        recordedSeparatorAfter: current.recordedSeparatorAfter,
+      );
       controller.value = controller.value.copyWith(
         text: merged,
         selection: TextSelection.collapsed(offset: joinOffset),

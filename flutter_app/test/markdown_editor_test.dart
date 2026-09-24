@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:gpt_markdown/gpt_markdown.dart';
 
 import 'package:markdown_editor/editor/controllers/markdown_block_controller.dart';
+import 'package:markdown_editor/editor/models/block.dart';
 import 'package:markdown_editor/editor/widgets/markdown_editor.dart';
 
 import 'span_flatten.dart';
@@ -26,7 +27,9 @@ Future<void> pumpEditor(WidgetTester tester, List<String> blocks) async {
       theme: ThemeData(colorSchemeSeed: Colors.indigo, useMaterial3: true),
       home: Scaffold(
         body: SingleChildScrollView(
-          child: MarkdownEditor(initialBlockTexts: blocks),
+          child: MarkdownEditor(
+            initialBlocks: [for (final text in blocks) MdBlock(text: text)],
+          ),
         ),
       ),
     ),
@@ -150,6 +153,74 @@ void main() {
     final headingPlainText = _renderedPlainText(tester);
     expect(headingPlainText, contains('标题'));
     expect(headingPlainText, isNot(contains('#')), reason: '渲染态标记隐藏');
+  });
+
+  testWidgets('结构块内 Enter 插入换行不拆块（已含换行的表格块）', (tester) async {
+    await pumpEditor(tester, ['| a | b |\n| --- | --- |']);
+    final controller = _controllerOf(tester);
+    controller.selection = const TextSelection.collapsed(offset: 9);
+    await tester.pump();
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+    await tester.pump();
+    await tester.pump();
+
+    expect(find.byType(EditableText), findsOneWidget, reason: '块未拆分，仍是编辑态');
+    expect(_controllerOf(tester).text, '| a | b |\n\n| --- | --- |');
+    expect(_controllerOf(tester).value.selection.baseOffset, 10);
+    expect(find.byType(GptMarkdown), findsNothing, reason: '没有产生新块');
+  });
+
+  testWidgets('表格行单行块 Enter 续行不拆块', (tester) async {
+    await pumpEditor(tester, ['| a | b |']);
+    final controller = _controllerOf(tester);
+    controller.selection = const TextSelection.collapsed(offset: 9);
+    await tester.pump();
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+    await tester.pump();
+    await tester.pump();
+
+    expect(find.byType(EditableText), findsOneWidget);
+    expect(_controllerOf(tester).text, '| a | b |\n');
+  });
+
+  testWidgets('列表行块 Enter 续行不拆块，普通段落仍拆块', (tester) async {
+    await pumpEditor(tester, ['- 甲']);
+    final controller = _controllerOf(tester);
+    controller.selection = const TextSelection.collapsed(offset: 3);
+    await tester.pump();
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+    await tester.pump();
+    await tester.pump();
+    expect(_controllerOf(tester).text, '- 甲\n', reason: '列表前缀块不拆块');
+
+    await tester.enterText(find.byType(EditableText), '普通段落');
+    await tester.pump();
+    await tester.pump();
+    controller.selection = const TextSelection.collapsed(offset: 2);
+    await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+    await tester.pump();
+    await tester.pump();
+    expect(find.byType(GptMarkdown), findsOneWidget, reason: '普通段落 Enter 拆块');
+  });
+
+  testWidgets('多行块行首 Backspace 合入上一块', (tester) async {
+    await pumpEditor(tester, ['引言', '| a | b |\n| 1 | 2 |']);
+
+    await tester.tap(find.byType(GptMarkdown), warnIfMissed: false);
+    await tester.pump();
+    await tester.pump();
+    expect(_controllerOf(tester).text, '| a | b |\n| 1 | 2 |');
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.backspace);
+    await tester.pump();
+    await tester.pump();
+
+    expect(find.byType(EditableText), findsOneWidget);
+    expect(_controllerOf(tester).text, '引言| a | b |\n| 1 | 2 |');
+    expect(_controllerOf(tester).value.selection.baseOffset, 2);
   });
 
   testWidgets('基准场景全流程：今天的**天气是晴天**，还不错', (tester) async {
