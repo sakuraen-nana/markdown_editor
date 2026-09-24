@@ -52,3 +52,10 @@ openspec/      规格与提案（changes/ 在途提案，specs/ 已归档主规�
 - **所有 `flutter` / `dart` 命令在 `flutter_app/` 目录下执行**（应用不在仓库根）。
 - Flutter 相关任务**优先匹配已安装的 flutter-* 官方 skills**（Flutter 团队维护，见 `.claude/skills/flutter-*`），
   覆盖：widget/集成测试、响应式布局、布局错误修复、go_router 路由、国际化、JSON 序列化、http 请求等。
+- **无显示环境（CI/容器）运行桌面应用**：必须带 D-Bus 会话，否则应用卡在 GTK 初始化、
+  Dart 代码完全不执行且无任何输出：
+  `xvfb-run -a dbus-run-session -- ./build/linux/x64/debug/bundle/markdown_editor`（可加 `NO_AT_BRIDGE=1`）。
+  应用 stdout 在此环境不可靠，验证以文件系统副作用为准。
+- **widget 测试（`testWidgets`）内禁止裸真实副作用**：假异步区里直接 `await` 真实文件 IO，
+  或挂载会触发图片解码的组件（`Image.file`/`Image.network`），会静默挂起；真实 IO 用
+  `tester.runAsync` 包裹，图片类断言在构造层（不真正挂载解码）完成。
