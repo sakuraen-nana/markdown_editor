@@ -42,4 +42,4 @@
 
 - [x] 7.1 `flutter analyze` 与全量 `flutter test` 通过
 - [x] 7.2 在桌面平台手动过一遍规格场景：首启建文件 → 编辑出现脏标记 → Ctrl+S 落盘（重启后内容保留）→ 删除 `notes.md` 重启自动重建 → 抽屉切换与未保存确认；对照 specs 逐条勾核
-- [ ] 7.3 `openspec validate --strict` 通过，按 `/opsx:archive` 归档并沉淀主规格
+- [x] 7.3 `openspec validate --strict` 通过，按 `/opsx:archive` 归档并沉淀主规格
