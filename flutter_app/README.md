@@ -55,9 +55,11 @@ flutter build apk --release --no-pub
 - 产物：`build/app/outputs/flutter-apk/app-release.apk`（约 59.7 MB，已被 `.gitignore` 忽略、不入库）
 - 核实产物完整：`unzip -t build/app/outputs/flutter-apk/app-release.apk`
 - 核实签名：`$ANDROID_HOME/build-tools/<版本>/apksigner verify --verbose <apk>`
+- 构建日志末尾可能出现 `Caught exception: Already watching path: …/flutter_tools/gradle`：
+  这是 Flutter 工具链的重复监听告警，不影响产物（退出码 0、APK 正常生成），无需排查。
 
 > 签名说明：`android/app/build.gradle.kts` 的 release 构建沿用模板默认的 **debug 签名**，
-> 仅适用于本机安装与测试，**不可用于分发**。正式发布需另行配置 release keystore。
+> 仅适用于安装到测试设备，**不可用于分发**。正式发布需另行配置 release keystore。
 
 ## 部署到模拟器 / 真机
 
@@ -82,8 +84,9 @@ adb -s <设备序列号> shell am start -n com.example.markdown_editor/.MainActi
 - **观察运行与报错**：`adb -s <序列号> logcat -v threadtime`，过滤 `E/flutter`、`FATAL EXCEPTION`。
 - **界面走查**：`adb -s <序列号> exec-out screencap -p > shot.png` 截图；
   `adb shell uiautomator dump` 可导出可点击元素边界用于定位坐标。
-- **首次连接新模拟器报 `unauthorized`**：该实例尚未信任本机 ADB 密钥。在模拟器屏幕上确认
-  授权弹窗，或重启 ADB 服务后重连即可（已验证有效）：`adb kill-server && adb start-server`。
+- **首次连接新模拟器报 `unauthorized`**：ADB 密钥需在设备上逐台授权，该实例尚未信任发起
+  连接的机器。在模拟器屏幕上确认授权弹窗，或重启 ADB 服务后重连即可（已验证有效）：
+  `adb kill-server && adb start-server`。
 - **软键盘不弹出导致 `adb shell input text` 无效**：模拟器自带内置硬件键盘
   （`dumpsys input` 中的 `qwerty2`），系统据此抑制软键盘，此时文本注入无接收方。
   临时打开软键盘即可实测输入：`adb shell settings put secure show_ime_with_hard_keyboard 1`
@@ -102,3 +105,13 @@ xvfb-run -a dbus-run-session -- ./build/linux/x64/debug/bundle/markdown_editor
 ```
 
 该环境下应用 stdout 不可靠，验证以文件系统副作用（`<docs>/MarkdownEditor/` 下的文件）为准。
+
+## 已知行为（未列入规格，未修复）
+
+- **内容短于视口时正文垂直居中**：`lib/main.dart` 的正文区是 `Center` + `ConstrainedBox(maxWidth: 720)`，
+  `maxWidth` 表明原意只限制阅读宽度，但 `Center` 在纵向同样居中。因此 `notes.md` / `todo.md`
+  这类短文档会浮在屏幕中部、上方留大片空白；`welcome.md` 内容长、填满视口，看起来是顶部对齐，
+  掩盖了该现象。实测（2026-09-26，`192.168.31.182` 的 `5555` 与 `5557` 两台模拟器均复现）：
+  视口 y 区间 210–2400（高 2190），内容容器 y 区间 658–1952（高 1294），上下留白各 448，完全对称。
+  两份主规格均未规定纵向对齐方式，故此为「未规定」而非「违反规格」；如需固化对齐要求，
+  应先走提案写入 `document-files` 规格。
