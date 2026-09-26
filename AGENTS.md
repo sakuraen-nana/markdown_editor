@@ -29,6 +29,12 @@ Android release APK 已可离线构建。后续功能一律从 OpenSpec 提案�
   首行 `emoji + type(scope): 中文描述`，如 `✨ feat(editor): 支持实时预览`；
   12 种类型与 emoji 对照、body/footer 规则以该 skill 为准，本文件不重复维护。
 - **提交信息不得包含任何协作者署名** —— 不加 `Co-Authored-By:` 行，不署工具名或 AI 名。只描述变更本身。
+- **推送通道（环境点态，换机需现场核实）**：`origin` 使用 SSH 主机别名 `git@github-se77:…`，
+  该别名在 `hermes-machine` 的 `~/.ssh/config` 中定义（映射 `github.com`，指定专用密钥，
+  `IdentitiesOnly yes`），**仓库内不含其配置**。换机器推送前需自行配置等价别名或改写远端地址。
+  核实方式：`ssh -T git@github-se77` 应返回 GitHub 的认证成功提示；`git remote -v` 查看当前地址。
+  推送前先 `git ls-remote origin` 探测连通性——该环境下 GitHub 可达性是间歇的，失败时做有限重试，
+  不要改动远端或绕过认证。
 
 ## 依赖约束
 
