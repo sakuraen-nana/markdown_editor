@@ -1,7 +1,8 @@
 # AGENTS.md
 
-Flutter 实现的 Markdown 编辑器。项目刚完成框架初始化（Flutter + OpenSpec），业务代码尚未开始；
-首个功能一律从 OpenSpec 提案开始。
+Flutter 实现的 Markdown 编辑器。已交付两个特性并归档沉淀至 `openspec/specs/`：
+块级双态实时预览编辑（`live-preview-editing`）、文件化多文档工作区（`document-files`）；
+Android release APK 已可离线构建。后续功能一律从 OpenSpec 提案开始。
 
 规格以 `openspec/` 为唯一事实来源；本文件只存「怎么做」的规则。
 
@@ -42,9 +43,13 @@ Flutter 实现的 Markdown 编辑器。项目刚完成框架初始化（Flutter 
 ## 项目结构
 
 ```
-flutter_app/   Flutter 应用本体（目前为 flutter create 骨架，业务代码待开发）
-openspec/      规格与提案（changes/ 在途提案，specs/ 已归档主规格）
-.claude/       agent 规则与技能（openspec-* 工作流、git-commit 提交规范、flutter-* 官方技能）
+flutter_app/   Flutter 应用本体（构建与运行方式见 flutter_app/README.md）
+  lib/main.dart      应用壳：AppBar + 抽屉文档切换 + 未保存确认
+  lib/document/      存储层与多文档工作区（store / workspace / 固定文档 / 模板资产）
+  lib/editor/        块模型、编解码、块编辑与渲染（controllers / models / widgets）
+openspec/      规格与提案（specs/ 主规格，changes/archive/ 已归档提案）
+.claude/       agent 规则与技能（openspec-* 工作流、git-commit 提交规范、
+               session-checkpoint 会话落盘、flutter-* 官方技能）
 ```
 
 ## Flutter 开发要点
@@ -52,7 +57,12 @@ openspec/      规格与提案（changes/ 在途提案，specs/ 已归档主规�
 - **所有 `flutter` / `dart` 命令在 `flutter_app/` 目录下执行**（应用不在仓库根）。
 - Flutter 相关任务**优先匹配已安装的 flutter-* 官方 skills**（Flutter 团队维护，见 `.claude/skills/flutter-*`），
   覆盖：widget/集成测试、响应式布局、布局错误修复、go_router 路由、国际化、JSON 序列化、http 请求等。
-- **网络受限环境**：当前机器即使运行代理程序并配置代理参数，也无法访问 Google 等境外网站，GitHub 访问亦不稳定；不得把代理配置视为外网可达。此后的开发、构建与调试应优先检查并复用本地 SDK、依赖和构建缓存，避免无必要的公网下载；遇到网络依赖时优先尝试缓存/离线方案，区分网络故障与代码故障，并如实说明因缺少本地资源而无法继续的阻塞，不要反复依赖不稳定的外网访问。
+- **网络受限环境（环境点态，换机需现场核实）**：`hermes-machine`（本仓库既定开发机）上即使运行
+  代理程序并配置代理参数，也无法访问 Google 等境外网站，GitHub 访问亦不稳定；不得把代理配置
+  视为外网可达。此后的开发、构建与调试应优先检查并复用本地 SDK、依赖和构建缓存，避免无必要的
+  公网下载；遇到网络依赖时优先尝试缓存/离线方案，区分网络故障与代码故障，并如实说明因缺少
+  本地资源而无法继续的阻塞，不要反复依赖不稳定的外网访问。可用的离线构建命令与核实方式见
+  `flutter_app/README.md`。
 - **无显示环境（CI/容器）运行桌面应用**：必须带 D-Bus 会话，否则应用卡在 GTK 初始化、
   Dart 代码完全不执行且无任何输出：
   `xvfb-run -a dbus-run-session -- ./build/linux/x64/debug/bundle/markdown_editor`（可加 `NO_AT_BRIDGE=1`）。
