@@ -82,9 +82,16 @@ adb -s <设备序列号> shell am start -n com.example.markdown_editor/.MainActi
 - **观察运行与报错**：`adb -s <序列号> logcat -v threadtime`，过滤 `E/flutter`、`FATAL EXCEPTION`。
 - **界面走查**：`adb -s <序列号> exec-out screencap -p > shot.png` 截图；
   `adb shell uiautomator dump` 可导出可点击元素边界用于定位坐标。
+- **首次连接新模拟器报 `unauthorized`**：该实例尚未信任本机 ADB 密钥。在模拟器屏幕上确认
+  授权弹窗，或重启 ADB 服务后重连即可（已验证有效）：`adb kill-server && adb start-server`。
+- **软键盘不弹出导致 `adb shell input text` 无效**：模拟器自带内置硬件键盘
+  （`dumpsys input` 中的 `qwerty2`），系统据此抑制软键盘，此时文本注入无接收方。
+  临时打开软键盘即可实测输入：`adb shell settings put secure show_ime_with_hard_keyboard 1`
+  （用完还原为 0）。
 
-> 记录时间 2026-09-24：该模拟器实例为 `sdk_gphone16k_x86_64`（Android 17，1080x2400，density 420），
-> 宿主机局域网地址为 `192.168.31.182:5555`。宿主机重启后端口可能漂移，此为点态值，使用前须重新确认。
+> 记录时间 2026-09-24 / 2026-09-26：模拟器实例为 `sdk_gphone16k_x86_64`（Android 17，1080x2400，
+> density 420），宿主机局域网地址为 `192.168.31.182`，已见端口 `5555` 与 `5557`（后者为独占实例）。
+> 宿主机重启后端口可能漂移，此为点态值，使用前须重新确认。
 
 ## 桌面端（无显示环境）
 
