@@ -1,6 +1,6 @@
 ## Context
 
-`flutter_app/` 为 flutter create 骨架，无业务代码。硬约束：gpt_markdown ≥ 1.3.0 且禁用其全部 `@Deprecated` API（CLAUDE.md「依赖约束」）。选型背景见 proposal Impact：实时样式发生在可编辑文本内部，文档渲染库（含 gpt_markdown）不在正确的抽象层，编辑态管线必须自建。
+`flutter_app/` 为 flutter create 骨架，无业务代码。硬约束：gpt_markdown ≥ 1.3.0 且禁用其全部 `@Deprecated` API（AGENTS.md「依赖约束」）。选型背景见 proposal Impact：实时样式发生在可编辑文本内部，文档渲染库（含 gpt_markdown）不在正确的抽象层，编辑态管线必须自建。
 
 ## Goals / Non-Goals
 

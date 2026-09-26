@@ -10,7 +10,7 @@ import 'chart_block_view.dart';
 ///
 /// 仅使用 gpt_markdown 现行 API（`GptMarkdown`、`InlinePattern`、
 /// `blockComponents`、`imageBuilder`），不触碰任何 `@Deprecated` 成员——
-/// 见 CLAUDE.md「依赖约束」。点击切换编辑态由外层 [MarkdownEditor] 负责。
+/// 见 AGENTS.md「依赖约束」。点击切换编辑态由外层 [MarkdownEditor] 负责。
 class RenderedBlock extends StatelessWidget {
   const RenderedBlock({super.key, required this.text});
 

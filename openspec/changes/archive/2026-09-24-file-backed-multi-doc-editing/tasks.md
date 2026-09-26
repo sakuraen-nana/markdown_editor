@@ -1,6 +1,6 @@
 # 任务：file-backed-multi-doc-editing
 
-> 所有 `flutter` / `dart` 命令在 `flutter_app/` 目录下执行。实施遵循 CLAUDE.md：gpt_markdown 只用现行 API。
+> 所有 `flutter` / `dart` 命令在 `flutter_app/` 目录下执行。实施遵循 AGENTS.md：gpt_markdown 只用现行 API。
 
 ## 1. 依赖与资产准备
 

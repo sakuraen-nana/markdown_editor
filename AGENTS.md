@@ -1,4 +1,4 @@
-# CLAUDE.md
+# AGENTS.md
 
 Flutter 实现的 Markdown 编辑器。项目刚完成框架初始化（Flutter + OpenSpec），业务代码尚未开始；
 首个功能一律从 OpenSpec 提案开始。
